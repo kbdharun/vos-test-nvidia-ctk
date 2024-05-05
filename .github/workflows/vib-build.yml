@@ -106,6 +106,15 @@ jobs:
       run: |
         echo -n "${{ needs.check_update.outputs.base_image }}" > ./includes.container/image-info/base-image-name
         echo -n "${{ env.REPO_OWNER_LOWERCASE }}/${{ env.CUSTOM_IMAGE_NAME }}" > ./includes.container/image-info/image-name
+    
+    - name: Freeup Space in Runner
+      run: |
+        # Workaround to provide additional free space for testing.
+        #   https://github.com/actions/virtual-environments/issues/2840
+        sudo rm -rf /usr/share/dotnet
+        sudo rm -rf /opt/ghc
+        sudo rm -rf "/usr/local/share/boost"
+        sudo rm -rf "$AGENT_TOOLSDIRECTORY"
 
     - name: Build the Docker image
       run: docker image build -f Containerfile --tag "${{ env.IMAGE_TAG }}" .
