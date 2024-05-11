@@ -120,18 +120,18 @@ jobs:
         echo -n "${{ needs.check_update.outputs.base_image }}" > ./includes.container/image-info/base-image-name
         echo -n "${{ env.REPO_OWNER_LOWERCASE }}/${{ env.CUSTOM_IMAGE_NAME }}" > ./includes.container/image-info/image-name
 
-    - name: Docker meta
-      id: docker_meta
-      uses: docker/metadata-action@v5
-      with:
-        images: |
-          ${{ env. IMAGE_URL }}
-        tags: |
-          type=semver,pattern={{version}}
-          type=semver,pattern={{major}}.{{minor}}
-          type=semver,pattern={{raw}}
-          type=semver,pattern=v{{major}}
-          type=ref,event=branch
+    # - name: Docker meta
+    #   id: docker_meta
+    #   uses: docker/metadata-action@v5
+    #   with:
+    #     images: |
+    #       ${{ env. IMAGE_URL }}
+    #     tags: |
+    #       type=semver,pattern={{version}}
+    #       type=semver,pattern={{major}}.{{minor}}
+    #       type=semver,pattern={{raw}}
+    #       type=semver,pattern=v{{major}}
+    #       type=ref,event=branch
 
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
@@ -151,7 +151,27 @@ jobs:
         context: .
         file: Containerfile
         push: ${{ github.event_name != 'pull_request' }}
-        tags: ${{ steps.docker_meta.outputs.tags }}
+        tags: main
         labels: ${{ steps.docker_meta.outputs.labels }}
         cache-from: type=gha
         cache-to: type=gha,mode=max
+
+    - name: Install Skopeo and Jq
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y skopeo jq
+
+    - name: Calculate Image Sizes
+      run: |
+        # Calculate and display the size of the built image
+        BUILT_IMAGE_SIZE=$(skopeo inspect docker://ghcr.io/${{ github.repository_owner }}/${{ env.CUSTOM_IMAGE_NAME }}:${{ steps.push.outputs.digest }} | jq '.Size')
+        BUILT_IMAGE_SIZE_MB=$(echo "scale=2; $BUILT_IMAGE_SIZE / 1024 / 1024" | bc)
+        echo "BUILT_IMAGE_SIZE_MB=$BUILT_IMAGE_SIZE_MB"
+
+        # Pull the base image
+        docker pull ghcr.io/vanilla-os/nvidia:main
+
+        # Calculate and display the size of the base image
+        BASE_IMAGE_SIZE=$(skopeo inspect docker://ghcr.io/vanilla-os/nvidia:main | jq '.Size')
+        BASE_IMAGE_SIZE_MB=$(echo "scale=2; $BASE_IMAGE_SIZE / 1024 / 1024" | bc)
+        echo "BASE_IMAGE_SIZE_MB=$BASE_IMAGE_SIZE_MB"
