@@ -157,28 +157,30 @@ jobs:
         cache-to: type=gha,mode=max
 
   compare_image_sizes:
-    needs: [build] # This job depends on the 'build' job
+    needs: [build]
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request' # This job only runs on pull requests
+    if: github.event_name == 'pull_request'
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
       - name: Install dependencies
         run: sudo apt-get install -y jq skopeo
+
       - name: Get size of the built image
         id: built_image_size
         run: |
-          BUILT_IMAGE_SIZE=$(skopeo inspect docker://ghcr.io/${{ github.repository_owner }}/${{ env.CUSTOM_IMAGE_NAME }} | jq '.Size')
+          BUILT_IMAGE_SIZE=$(skopeo inspect docker://ghcr.io/${{ github.repository_owner }}/${{ env.CUSTOM_IMAGE_NAME }}:${{ github.sha }} | jq '.Size')
           echo "BUILT_IMAGE_SIZE=$BUILT_IMAGE_SIZE" >> "$GITHUB_ENV"
+
       - name: Get size of the base image
         id: base_image_size
         run: |
           BASE_IMAGE_SIZE=$(skopeo inspect docker://ghcr.io/vanilla-os/nvidia:main | jq '.Size')
           echo "BASE_IMAGE_SIZE=$BASE_IMAGE_SIZE" >> "$GITHUB_ENV"
+
       - name: Compare image sizes
         run: |
           DIFFERENCE=$(expr $BUILT_IMAGE_SIZE - $BASE_IMAGE_SIZE)
           echo "DIFFERENCE=$DIFFERENCE" >> "$GITHUB_ENV"
+
       - name: Comment on PR
         uses: actions/github-script@v5
         with:
