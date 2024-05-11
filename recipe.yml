@@ -5,7 +5,7 @@ stages:
   base: ghcr.io/vanilla-os/nvidia:main
   singlelayer: false
   labels:
-    maintainer: self-maintained
+    maintainer: Dharun Krishna K B
   args:
     DEBIAN_FRONTEND: noninteractive
   runs:
@@ -20,31 +20,18 @@ stages:
 
   # Put your custom actions behind this comment
 
-  - name: example-packages
+  - name: nvidia-ctk-repo
+    type: shell
+    commands:
+      - curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
+      - curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list | sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' | tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
+      - apt update
+
+  - name: nvidia-ctk
     type: apt
     source:
       packages:
-      - vim
-
-  - name: nvidia-ctk-setup
-    type: shell
-    commands:
-    - curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg \
-    && curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list | \
-    sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' | \
-    sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
-  
-  - name: nvidia-ctk
-    type: shell
-    commands:
-    - apt-get update
-    - apt-get install -y nvidia-container-toolkit
-    - nvidia-ctk -h
-
-  - name: example-modules
-    type: includes
-    includes:
-      - modules/50-install-debs.yml
+        - nvidia-container-toolkit
 
   # Put your custom actions before this comment
 
